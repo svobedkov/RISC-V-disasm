@@ -1,9 +1,6 @@
 #define EI_NIDENT 16
 
-#include <iostream>
-#include <fstream>
-#include <map>
-#include <string>
+#include "byte_parser.h"
 
 typedef struct {
         unsigned char   e_ident[EI_NIDENT];
@@ -87,15 +84,38 @@ typedef struct {
         uint64_t    sh_entsize;
 } Elf64_Shdr;
 
-std::map <uint16_t, std::string> opcode_copmp_map = {
+/*std::map <uint16_t, std::string> opcode_RV32_map = {
     {0b0, "ADDI4SPN"},
-    {0b1, "--------"},  //CHECK FOR EXTENTION
+    {0b0010000000000000, "FLD"},
+    {0b0100000000000000, "LW"},
+    {0b0110000000000000, "FLW"},
+    {0b1010000000000000, "FSD"},
+    {0b1100000000000000, "SW"},
+    {0b1110000000000000, "FSW"},
+    {0b1, "ADDI"},  //NOP
 };
 
-std::map <uint32_t, std::string> opcode_map = {
-    {},
+std::map <uint32_t, std::string> opcode_RV64_map = {
+    {0b0, "ADDI4SPN"},
+    {0b0010000000000000, "FLD"},
+    {0b0100000000000000, "LW"},
+    {0b0110000000000000, "LD"},
+    {0b1010000000000000, "FSD"},
+    {0b1100000000000000, "SW"},
+    {0b1110000000000000, "SD"},
+    {0b1, "ADDI"},  //NOP
 };
 
+std::map <uint32_t, std::string> opcode_RV128_map = {
+    {0b0, "ADDI4SPN"},
+    {0b0010000000000000, "LQ"},
+    {0b0100000000000000, "LW"},
+    {0b0110000000000000, "LD"},
+    {0b1010000000000000, "SQ"},
+    {0b1100000000000000, "SW"},
+    {0b1110000000000000, "SD"},
+    {0b1, "ADDI"},  //NOP
+};*/
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
@@ -136,7 +156,7 @@ int main(int argc, char* argv[]) {
     std::cout << "  Number of entries in the section header table: " << std::hex << elfHeader.e_shnum << std::endl;
     std::cout << "  Section header table index of the entry associated with the section name string table: " << std::hex << elfHeader.e_shstrndx << std::endl;
 
-    /*std::cout << "==================================================================================================================" << std::endl;
+    std::cout << "==================================================================================================================" << std::endl;
 
     elfFile.seekg(elfHeader.e_phoff, std::ios_base::beg);
     for(int i = 0; i < elfHeader.e_phnum; i++) {
@@ -153,7 +173,9 @@ int main(int argc, char* argv[]) {
         std::cout << "==================================================================================================================" << std::endl;
     }
 
-        elfFile.seekg(elfHeader.e_shoff, std::ios_base::beg);
+    int size_of_data;
+
+    elfFile.seekg(elfHeader.e_shoff, std::ios_base::beg);
     for(int i = 0; i < elfHeader.e_shnum; i++) {
         Elf64_Shdr elfSHeader;
         elfFile.read(reinterpret_cast<char*>(&elfSHeader), sizeof(Elf64_Shdr));
@@ -167,13 +189,30 @@ int main(int argc, char* argv[]) {
         std::cout << "sh_info: " << std::hex << elfSHeader.sh_info << std::endl;
         std::cout << "sh_addralign: " << std::hex << elfSHeader.sh_addralign << std::endl;
         std::cout << "sh_entsize: " << std::hex << elfSHeader.sh_entsize << std::endl;
-        if (elfSHeader.sh_type == 6) {
-            //
+
+        if (elfSHeader.sh_addr == elfHeader.e_entry) {
+            size_of_data = elfSHeader.sh_size;
         }
+
+        /*if (elfSHeader.sh_type == 6) {
+            //
+        }*/
         std::cout << "==================================================================================================================" << std::endl;
-    }*/
+    }
 
+    elfFile.seekg(elfHeader.e_entry, std::ios_base::beg);
 
+    while (elfFile.tellg() < elfHeader.e_entry + size_of_data)
+    {
+        uint8_t temp_data[4];
+        elfFile.read(reinterpret_cast<char*>(temp_data), sizeof(uint8_t));
+        if ((temp_data[0] & 0b11) == 0b11) {
+            elfFile.read(reinterpret_cast<char*>(temp_data + 1), 3 * sizeof(uint8_t));
+        } else {
+            elfFile.read(reinterpret_cast<char*>(temp_data + 1), sizeof(uint8_t));
+        }
+    }
+    
 
     return 0;
 }
