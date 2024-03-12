@@ -200,6 +200,13 @@ int main(int argc, char* argv[]) {
         std::cout << "==================================================================================================================" << std::endl;
     }
 
+    // data[0] - rd
+    // data[1] - rs1
+    // data[2] - rs2
+    // data[3] - rs3
+    // data[4] - integer
+    uint32_t data[5];
+
     elfFile.seekg(elfHeader.e_entry, std::ios_base::beg);
 
     while (elfFile.tellg() < elfHeader.e_entry + size_of_data)

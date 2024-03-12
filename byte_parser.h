@@ -126,7 +126,7 @@ public:
             data_[1][0][0] = "addi %s, %s, nzimm[%d]"; // if null, than (nop)
             data_[1][1][0] = "addiw %1$s, %1$s, %2$d"; // ??? (optimal?)
             data_[1][2][0] = "addi %s, zero, imm[%d]";
-            data_[1][3][0] = "addi sp, sp, nzimm[%d]";
+            data_[1][3][0] = "addi sp, sp, nzimm[%d]"; //==============================
             // 1, 4 COMPLEX STRUCTURE ???
             data_[1][5][0] = "jal zero, offset[%d]";
             data_[1][6][0] = "beq %s, zero, offset[%d]";
@@ -152,7 +152,7 @@ public:
             data_[1][0][0] = "addi %s, %s, nzimm[%d]"; // if null, than (nop)
             data_[1][1][0] = "addiw %1$s, %1$s, %2$d"; // ??? (optimal?)
             data_[1][2][0] = "addi %s, zero, imm[%d]";
-            data_[1][3][0] = "addi sp, sp, nzimm[%d]";
+            data_[1][3][0] = "addi sp, sp, nzimm[%d]"; //==================================
             // 1, 4 COMPLEX STRUCTURE ???
             data_[1][5][0] = "jal zero, offset[%d]";
             data_[1][6][0] = "beq %s, zero, offset[%d]";
@@ -179,8 +179,8 @@ public:
             data_[1][0][0] = "addi %s, %s, nzimm[%d]"; // if null, than (nop)
             data_[1][1][0] = "jal ra, offset[%d]";
             data_[1][2][0] = "addi %s, zero, imm[%d]";
-            data_[1][3][0] = "addi sp, sp, nzimm[%d]";
-            // 1, 4 COMPLEX STRUCTURE ???
+            data_[1][3][0] = "addi sp, sp, nzimm[%d]"; //====================================
+            // 1, 4 COMPLEX STRUCTURE ???  // data[0] = [rd, rs1], data[1] = rs2, data[2] = param1, data[3] = param2, (optional) data[4] = param3
             data_[1][5][0] = "jal zero, offset[%d]";
             data_[1][6][0] = "beq %s, zero, offset[%d]";
             data_[1][7][0] = "bne %s, zero, offset[%d]";
