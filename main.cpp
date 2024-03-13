@@ -205,7 +205,10 @@ int main(int argc, char* argv[]) {
     // data[2] - rs2
     // data[3] - rs3
     // data[4] - integer
-    uint32_t data[5];
+    // FOR 32-bit COMMANDS
+    // data[5] - func1
+    // data[6] - func2
+    OpcodeAndFunction strings_data(elfHeader.e_ident[4] - 1); // ARCH
 
     elfFile.seekg(elfHeader.e_entry, std::ios_base::beg);
 
@@ -214,12 +217,24 @@ int main(int argc, char* argv[]) {
         uint8_t temp_data[4];
         elfFile.read(reinterpret_cast<char*>(temp_data), sizeof(uint8_t));
         if ((temp_data[0] & 0b11) == 0b11) {
+            uint32_t data[7];
             elfFile.read(reinterpret_cast<char*>(temp_data + 1), 3 * sizeof(uint8_t));
+            check_for_template(temp_data, data);
         } else {
+            uint32_t data[5];
             elfFile.read(reinterpret_cast<char*>(temp_data + 1), sizeof(uint8_t));
+            check_for_compressed_template(temp_data, data, elfHeader.e_ident[4] - 1); // ARCH
+            //
+            std::string test_string;
+            uint8_t func1;
+            uint8_t func2;
+            func1 = (temp_data[0] & 0b00000011);
+            func2 = (temp_data[1] & 0b11100000) >> 5;
+            strings_data.find(func1, func2, 0, test_string);
+            std::cout << test_string << std::endl;
+            //
         }
     }
     
-
     return 0;
 }
