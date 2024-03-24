@@ -1,4 +1,6 @@
 #include "byte_parser.h"
+#include <sstream>
+#include <iomanip>
 
 uint8_t addr_len_glob;
 uint8_t arch_glob;
@@ -26,7 +28,7 @@ uint8_t bytes_glob;
     // data[3] - rs3
     // data[4] - integer
 
-std::string reg_name(uint8_t num) {     //maybe uint16_t
+std::string reg_name(uint32_t num) {     //maybe uint16_t
     switch (num)
     {
     case 0: return "zero";
@@ -65,6 +67,15 @@ std::string reg_name(uint8_t num) {     //maybe uint16_t
     }
 }
 
+std::string uint_to_hex( uint32_t i )
+{
+  std::stringstream stream;
+  stream << "0x" 
+//         << std::setfill ('0') << std::setw(sizeof(uint32_t)*2) 
+         << std::hex << i;
+  return stream.str();
+}
+
 void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t arch) {
     uint8_t func1;
     uint8_t func2;
@@ -79,11 +90,17 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             data[0] = ((byte_array[0] & 0b10000000) >> 7) +
             ((byte_array[1] & 0b00001111) << 1);
             data[1] = data[0];
+            data[2] = 0;
+            data[3] = 0;
             data[4] = ((byte_array[0] & 0b01111100) >> 2) +
             ((byte_array[1] & 0b00010000) << 1);
             break;
         case 1:
             if (arch == 0) {
+                data[0] = 0;
+                data[1] = 0;
+                data[2] = 0;
+                data[3] = 0;
                 data[4] = ((byte_array[0] & 0b00000100) << 3) +
                 ((byte_array[0] & 0b00111000) >> 2) +
                 ((byte_array[0] & 0b01000000) << 1) +
@@ -96,6 +113,8 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
                 data[0] = ((byte_array[0] & 0b10000000) >> 7) +
                 ((byte_array[1] & 0b00001111) << 1);
                 data[1] = data[0];
+                data[2] = 0;
+                data[3] = 0;
                 data[4] = ((byte_array[0] & 0b01111100) >> 2) +
                 ((byte_array[1] & 0b00010000) << 1);
             }
@@ -103,12 +122,18 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
         case 2:
             data[0] = ((byte_array[0] & 0b10000000) >> 7) +
             ((byte_array[1] & 0b00001111) << 1);
+            data[1] = 0;
+            data[2] = 0;
+            data[3] = 0;
             data[4] = ((byte_array[0] & 0b01111100) >> 2) +
             ((byte_array[1] & 0b00010000) << 1);
             break;
         case 3:
             data[0] = ((byte_array[0] & 0b10000000) >> 7) +
             ((byte_array[1] & 0b00001111) << 1);
+            data[1] = 0;
+            data[2] = 0;
+            data[3] = 0;
             if (data[0] == 2) {
                 data[4] = ((byte_array[0] & 0b00000100) << 3) +
                 ((byte_array[0] & 0b00011000) << 4) +
@@ -123,17 +148,23 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
         case 4: // data[0] = [rd, rs1], data[1] = rs2, data[2] = param1, data[3] = param2, (optional) data[4] = param3
             data[0] = ((byte_array[0] & 0b10000000) >> 7) +
             ((byte_array[1] & 0b00000011) << 1);
+            data[1] = 0;
             data[2] = ((byte_array[1] & 0b00001100) >> 2);
             if (data[2] == 3) {
                 data[1] = ((byte_array[0] & 0b00011100) >> 2);
                 data[3] = ((byte_array[0] & 0b01100000) >> 5);
                 data[4] = ((byte_array[1] & 0b00010000) >> 4);
             } else {
+                data[3] = 0;
                 data[4] = ((byte_array[0] & 0b01111100) >> 2) +
                 ((byte_array[1] & 0b00010000) << 1);
             }
             break;
         case 5:
+            data[0] = 0;
+            data[1] = 0;
+            data[2] = 0;
+            data[3] = 0;
             data[4] = ((byte_array[0] & 0b00000100) << 3) +
             ((byte_array[0] & 0b00111000) >> 2) +
             ((byte_array[0] & 0b01000000) << 1) +
@@ -144,8 +175,11 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             ((byte_array[1] & 0b00010000) << 7);
             break;
         case 6:
+            data[0] = 0;
             data[1] = ((byte_array[0] & 0b10000000) >> 7) +
             ((byte_array[1] & 0b00000011) << 1);
+            data[3] = 0;
+            data[2] = 0;
             data[4] = ((byte_array[0] & 0b00000100) << 3) +
             ((byte_array[0] & 0b00011000) >> 2) +
             ((byte_array[0] & 0b01100000) << 1) +
@@ -153,8 +187,11 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             ((byte_array[1] & 0b00010000) << 4);
             break;
         case 7:
+            data[0] = 0;
             data[1] = ((byte_array[0] & 0b10000000) >> 7) +
             ((byte_array[1] & 0b00000011) << 1);
+            data[2] = 0;
+            data[3] = 0;
             data[4] = ((byte_array[0] & 0b00000100) << 3) +
             ((byte_array[0] & 0b00011000) >> 2) +
             ((byte_array[0] & 0b01100000) << 1) +
@@ -172,19 +209,27 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             data[0] = ((byte_array[0] & 0b10000000) >> 7) +
             ((byte_array[1] & 0b00001111) << 1);
             data[1] = data[0];
+            data[2] = 0;
+            data[3] = 0;
             data[4] = ((byte_array[0] & 0b01111100) >> 2) +
             ((byte_array[1] & 0b00010000) << 1);
             break;
         case 1:
             if (arch == 2) {
                 data[0] = ((byte_array[0] & 0b10000000) >> 7) +
-                ((byte_array[1] & 0b00001111) < 1);
+                ((byte_array[1] & 0b00001111) << 1);
+                data[1] = 0;
+                data[2] = 0;
+                data[3] = 0;
                 data[4] = ((byte_array[0] & 0b00111100) << 4) +
                 ((byte_array[0] & 0b01000000) >> 2) +
                 ((byte_array[1] & 0b00010000) << 1);
             } else {
                 data[0] = ((byte_array[0] & 0b10000000) >> 7) +
-                ((byte_array[1] & 0b00001111) < 1);
+                ((byte_array[1] & 0b00001111) << 1);
+                data[1] = 0;
+                data[2] = 0;
+                data[3] = 0;
                 data[4] = ((byte_array[0] & 0b00011100) << 4) +
                 ((byte_array[0] & 0b01100000) >> 2) +
                 ((byte_array[1] & 0b00010000) << 1);
@@ -192,7 +237,10 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             break;
         case 2:
             data[0] = ((byte_array[0] & 0b10000000) >> 7) +
-            ((byte_array[1] & 0b00001111) < 1);
+            ((byte_array[1] & 0b00001111) << 1);
+            data[1] = 0;
+            data[2] = 0;
+            data[3] = 0;
             data[4] = ((byte_array[0] & 0b00001100) << 4) +
             ((byte_array[0] & 0b01110000) >> 2) +
             ((byte_array[1] & 0b00010000) << 1);
@@ -200,13 +248,19 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
         case 3:
             if (arch == 0) {
                 data[0] = ((byte_array[0] & 0b10000000) >> 7) +
-                ((byte_array[1] & 0b00001111) < 1);
+                ((byte_array[1] & 0b00001111) << 1);
+                data[1] = 0;
+                data[2] = 0;
+                data[3] = 0;
                 data[4] = ((byte_array[0] & 0b00001100) << 4) +
                 ((byte_array[0] & 0b01110000) >> 2) +
                 ((byte_array[1] & 0b00010000) << 1);
             } else {
                 data[0] = ((byte_array[0] & 0b10000000) >> 7) +
-                ((byte_array[1] & 0b00001111) < 1);
+                ((byte_array[1] & 0b00001111) << 1);
+                data[1] = 0;
+                data[2] = 0;
+                data[3] = 0;
                 data[4] = ((byte_array[0] & 0b00011100) << 4) +
                 ((byte_array[0] & 0b01100000) >> 2) +
                 ((byte_array[1] & 0b00010000) << 1);
@@ -214,11 +268,16 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             break;
         case 4: // data[0] = [rd, rs1], data[1] = param1, data[2] = param2
             data[0] = ((byte_array[0] & 0b10000000) >> 7) +
-            ((byte_array[1] & 0b00001111) < 1);
+            ((byte_array[1] & 0b00001111) << 1);
             data[1] = ((byte_array[0] & 0b01111100) >> 2);
             data[2] = ((byte_array[1] & 0b00010000) >> 4);
+            data[3] = 0;
+            data[4] = 0;
             break;
         case 5:
+            data[1] = 0;
+            data[2] = 0;
+            data[3] = 0;
             if (arch == 2) {
                 data[0] = ((byte_array[0] & 0b01111100) >> 2);
                 data[4] = ((byte_array[0] & 0b10000000) >> 1) +
@@ -233,11 +292,17 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             break;
         case 6:
             data[0] = ((byte_array[0] & 0b01111100) >> 2);
+            data[1] = 0;
+            data[2] = 0;
+            data[3] = 0;
             data[4] = ((byte_array[0] & 0b10000000) >> 1) +
             ((byte_array[1] & 0b00000001) << 7) +
             ((byte_array[1] & 0b00011110) << 1);
             break;
         case 7:
+            data[1] = 0;
+            data[2] = 0;
+            data[3] = 0;
             if (arch == 0) {
                 data[0] = ((byte_array[0] & 0b01111100) >> 2);
                 data[4] = ((byte_array[0] & 0b10000000) >> 1) +
@@ -259,6 +324,9 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
         {
         case 0:
             data[0] = (byte_array[0] & 0b00011100) >> 2;
+            data[1] = 0;
+            data[2] = 0;
+            data[3] = 0;
             data[4] = ((byte_array[0] & 0b00100000) >> 2) + 
             ((byte_array[0] & 0b01000000) >> 4) +
             ((byte_array[0] & 0b10000000) >> 1) +
@@ -266,6 +334,8 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             ((byte_array[1] & 0b00011000) << 1);
             break;
         case 1:
+            data[2] = 0;
+            data[3] = 0;
             if (arch == 2) {
                 data[0] = (byte_array[0] & 0b00011100) >> 2;
                 data[1] = ((byte_array[0] & 0b10000000) >> 7) +
@@ -285,11 +355,15 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             data[0] = (byte_array[0] & 0b00011100) >> 2;
             data[1] = ((byte_array[0] & 0b10000000) >> 7) +
             ((byte_array[1] & 0b00000011) << 1);
+            data[2] = 0;
+            data[3] = 0;
             data[4] = ((byte_array[0] & 0b00100000) << 1) +
             ((byte_array[0] & 0b01000000) >> 4) +
             ((byte_array[1] & 0b00011100) << 1);
             break;
         case 3:
+            data[2] = 0;
+            data[3] = 0;
             if (arch == 0) {
                 data[0] = (byte_array[0] & 0b00011100) >> 2;
                 data[1] = ((byte_array[0] & 0b10000000) >> 7) +
@@ -306,6 +380,8 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             }
             break;
         case 5:
+            data[2] = 0;
+            data[3] = 0;
             if (arch == 2) {
                 data[0] = (byte_array[0] & 0b00011100) >> 2;
                 data[1] = ((byte_array[0] & 0b10000000) >> 7) +
@@ -322,6 +398,8 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             }
             break;
         case 6:
+            data[0] = 0;
+            data[3] = 0;
             data[2] = (byte_array[0] & 0b00011100) >> 2;
             data[1] = ((byte_array[0] & 0b10000000) >> 7) +
             ((byte_array[1] & 0b00000011) << 1);
@@ -330,6 +408,8 @@ void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t 
             ((byte_array[1] & 0b00011100) << 1);
             break;
         case 7:
+            data[0] = 0;
+            data[3] = 0;
             if (arch == 0) {
                 data[2] = (byte_array[0] & 0b00011100) >> 2;
                 data[1] = ((byte_array[0] & 0b10000000) >> 7) +
@@ -361,6 +441,8 @@ void R_type(uint8_t *byte_array, uint32_t *data) {  // FOR OPCODE 1010011 WE USE
     ((byte_array[2] & 0b00001111) << 1);
     data[2] = ((byte_array[2] & 0b11110000) >> 4) +
     ((byte_array[3] & 0b00000001) << 4);
+    data[3] = 0;
+    data[4] = 0;
     data[5] = ((byte_array[1] & 0b01110000) >> 4);
     data[6] = ((byte_array[3] & 0b11111110) >> 1);
     if ((byte_array[0] & 0b01111111) == 0b1010011) {
@@ -398,55 +480,78 @@ void I_type(uint8_t *byte_array, uint32_t *data) {
     ((byte_array[1] & 0b00001111) << 1);
     data[1] = ((byte_array[1] & 0b10000000) >> 7) +
     ((byte_array[2] & 0b00001111) << 1);
+    data[2] = 0;
+    data[3] = 0;
     data[4] = ((byte_array[2] & 0b11110000) >> 4) +
     ((byte_array[3] & 0b11111111) << 4);
     data[5] = ((byte_array[1] & 0b01110000) >> 4);
+    data[6] = 0;
     if (((byte_array[0] & 0b01111111) == 0b1110011) && data[5] == 0) {
         data[6] = data[4];
         data[4] = 0;
     }
+    if (((byte_array[0] & 0b01111111) == 0b0010011) && ((data[5] == 0b001) || (data[5] == 0b101))) {
+        data[6] = (data[4] & 0b111111100000) >> 5;
+        data[4] = data[4] & 0b000000011111;
+    }
 }
 
 void S_type(uint8_t *byte_array, uint32_t *data) {
+    data[0] = 0;
     data[1] = ((byte_array[1] & 0b10000000) >> 7) +
     ((byte_array[2] & 0b00001111) << 1);
     data[2] = ((byte_array[2] & 0b11110000) >> 4) +
     ((byte_array[3] & 0b00000001) << 4);
+    data[3] = 0;
     data[4] = ((byte_array[0] & 0b10000000) >> 7) +
     ((byte_array[1] & 0b00001111) << 1) +
     ((byte_array[3] & 0b11111110) << 4);
     data[5] = ((byte_array[1] & 0b01110000) >> 4);
+    data[6] = 0;
 }
 
 void B_type(uint8_t *byte_array, uint32_t *data) {
+    data[0] = 0;
     data[1] = ((byte_array[1] & 0b10000000) >> 7) +
     ((byte_array[2] & 0b00001111) << 1);
     data[2] = ((byte_array[2] & 0b11110000) >> 4) +
     ((byte_array[3] & 0b00000001) << 4);
+    data[3] = 0;
     data[4] = ((byte_array[0] & 0b10000000) << 4) +
     ((byte_array[1] & 0b00001111) << 4) +
     ((byte_array[3] & 0b01111110) << 4) +
     ((byte_array[3] & 0b10000000) << 5);
     data[5] = ((byte_array[1] & 0b01110000) >> 4);
+    data[6] = 0;
 }
 
 void U_type(uint8_t *byte_array, uint32_t *data) {
     data[0] = ((byte_array[0] & 0b10000000) >> 7) +
     ((byte_array[1] & 0b00001111) << 1);
+    data[1] = 0;
+    data[2] = 0;
+    data[3] = 0;
     data[4] = ((byte_array[1] & 0b11110000) << 8) +
     ((byte_array[2] & 0b11111111) << 16) +
     ((byte_array[3] & 0b11111111) << 24);
+    data[5] = 0;
+    data[6] = 0;
 }
 
 void J_type(uint8_t *byte_array, uint32_t *data) {
     data[0] = ((byte_array[0] & 0b10000000) >> 7) +
     ((byte_array[1] & 0b00001111) << 1);
+    data[1] = 0;
+    data[2] = 0;
+    data[3] = 0;
     data[4] = ((byte_array[1] & 0b11110000) << 8) +
     ((byte_array[2] & 0b00001111) << 16) +
     ((byte_array[2] & 0b00010000) << 7) +
     ((byte_array[2] & 0b11100000) >> 4) +
     ((byte_array[3] & 0b01111111) << 4) +
     ((byte_array[3] & 0b10000000) << 13);
+    data[5] = 0;
+    data[6] = 0;
 }
 
 void AMO_type(uint8_t *byte_array, uint32_t *data) { // data[3] - rl, data[4] - aq
@@ -508,7 +613,7 @@ void check_for_template(uint8_t *byte_array, uint32_t *data) {
         I_type(byte_array, data);
         break;
     case 0b0011011:
-        I_type(byte_array, data);
+        R_type(byte_array, data);
         break;
     case 0b0111011:
         R_type(byte_array, data);

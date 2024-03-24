@@ -84,39 +84,6 @@ typedef struct {
         uint64_t    sh_entsize;
 } Elf64_Shdr;
 
-/*std::map <uint16_t, std::string> opcode_RV32_map = {
-    {0b0, "ADDI4SPN"},
-    {0b0010000000000000, "FLD"},
-    {0b0100000000000000, "LW"},
-    {0b0110000000000000, "FLW"},
-    {0b1010000000000000, "FSD"},
-    {0b1100000000000000, "SW"},
-    {0b1110000000000000, "FSW"},
-    {0b1, "ADDI"},  //NOP
-};
-
-std::map <uint32_t, std::string> opcode_RV64_map = {
-    {0b0, "ADDI4SPN"},
-    {0b0010000000000000, "FLD"},
-    {0b0100000000000000, "LW"},
-    {0b0110000000000000, "LD"},
-    {0b1010000000000000, "FSD"},
-    {0b1100000000000000, "SW"},
-    {0b1110000000000000, "SD"},
-    {0b1, "ADDI"},  //NOP
-};
-
-std::map <uint32_t, std::string> opcode_RV128_map = {
-    {0b0, "ADDI4SPN"},
-    {0b0010000000000000, "LQ"},
-    {0b0100000000000000, "LW"},
-    {0b0110000000000000, "LD"},
-    {0b1010000000000000, "SQ"},
-    {0b1100000000000000, "SW"},
-    {0b1110000000000000, "SD"},
-    {0b1, "ADDI"},  //NOP
-};*/
-
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         std::cerr << "Usage: " << argv[0] << " <elf_file>" << std::endl;
@@ -220,6 +187,41 @@ int main(int argc, char* argv[]) {
             uint32_t data[7];
             elfFile.read(reinterpret_cast<char*>(temp_data + 1), 3 * sizeof(uint8_t));
             check_for_template(temp_data, data);
+            //
+            std::string test_string;
+            uint8_t opcode;
+            opcode = temp_data[0] & 0b01111111;
+            strings_data.find(opcode, data[5], data[6], test_string);
+            //
+            std::string parse_param;
+            size_t start;
+            parse_param = "%1$s";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, reg_name(data[0]));
+            }
+            parse_param = "%2$s";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, reg_name(data[1]));
+            }
+            parse_param = "%3$s";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, reg_name(data[2]));
+            }
+            parse_param = "%4$s";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, reg_name(data[3]));
+            }
+            parse_param = "%5$x";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, uint_to_hex(data[4]));
+            }
+            std::cout << test_string << std::endl;
+            //
         } else {
             uint32_t data[5];
             elfFile.read(reinterpret_cast<char*>(temp_data + 1), sizeof(uint8_t));
@@ -230,11 +232,163 @@ int main(int argc, char* argv[]) {
             uint8_t func2;
             func1 = (temp_data[0] & 0b00000011);
             func2 = (temp_data[1] & 0b11100000) >> 5;
-            strings_data.find(func1, func2, 0, test_string);
+            if ((1 <= func1) && (func1 <= 2) && (((3 <= func2) && (func2 <= 4)) || (func2 == 0))) {
+                switch (func1)
+                {
+                case 1:
+                    switch (func2)
+                    {
+                    case 0:
+                        if ((data[0] == 1) && (data[4] == 0)) {
+                            test_string = "nop";
+                        } else {
+                            test_string = "addi %1$s, %1$s, %5$x";
+                        }
+                        break;
+                    case 3:
+                        if (data[0] == 2) {
+                            test_string = "addi sp, sp, %5$x";
+                        } else {
+                            test_string = "lui %1$s, %5$x";
+                        }
+                        break;
+                    case 4:
+                        if (data[2] == 3) {
+                            switch (data[3])
+                            {
+                            case 0:
+                                if (data[4] == 1) {
+                                    test_string = "subw %1$s, %1$s, %2$s";
+                                } else {
+                                    test_string = "sub %1$s, %1$s, %2$s";
+                                }
+                                break;
+                            case 1:
+                                if (data[4] == 1) {
+                                    test_string = "addw %1$s, %1$s, %2$s";
+                                } else {
+                                    test_string = "xor %1$s, %1$s, %2$s";
+                                }
+                                break;
+                            case 2:
+                                test_string = "or %1$s, %1$s, %2$s";
+                                break;
+                            case 3:
+                                test_string = "and %1$s, %1$s, %2$s";
+                                break;                            
+                            default:
+                                break;
+                            }
+                        } else {
+                            switch (data[2])
+                            {
+                            case 0:
+                                if (data[4] == 0) {
+                                    test_string = "srli %1$s, %1$s, 64";
+                                } else {
+                                    test_string = "srli %1$s, %1$s, %5$x";
+                                }
+                                break;
+                            case 1:
+                                if (data[4] == 0) {
+                                    test_string = "srai %1$s, %1$s, 64";
+                                } else {
+                                    test_string = "srai %1$s, %1$s, %5$x";
+                                }
+                                break;
+                            case 2:
+                                test_string = "andi %1$s, %1$s, %5$x";
+                                break;
+                            default:
+                                break;
+                            }
+                        }
+                        break;                    
+                    default:
+                        break;
+                    }
+                    break;
+                case 2:
+                    switch (func2)
+                    {
+                    case 0:
+                        if (data[4] == 0) {
+                            test_string = "slli %1$s, %1$s, 64";
+                        } else {
+                            test_string = "slli %1$s, %1$s, %5$x";
+                        }
+                        break;
+                    case 3:
+                        if ((elfHeader.e_ident[4] - 1) == 0) {
+                            test_string = "flw %1$s, %5$x(sp)";
+                        } else {
+                            test_string = "ld %1$s, %5$x(sp)";
+                        }
+                        break;
+                    case 4:
+                        switch (data[2])
+                        {
+                        case 0:
+                            if (data[1] == 0) {
+                                test_string = "jalr zero, %1$s, 0";
+                            } else {
+                                test_string = "add %1$s, zero, %2$s";
+                            }
+                            break;
+                        case 1:
+                            if ((data[0] == 0) && (data[1] == 0)) {
+                                test_string = "ebreak";
+                            } else if (data[1] == 0) {
+                                test_string = "jalr ra, %1$s, 0";
+                            } else {
+                                test_string = "add %1$s, %1$s, %2$s";
+                            }
+                            break;                        
+                        default:
+                            break;
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                    break;                
+                default:
+                    break;
+                }
+            } else {
+                strings_data.find(func1, func2, 0, test_string);
+            }
+            //
+            std::string parse_param;
+            size_t start;
+            parse_param = "%1$s";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, reg_name(data[0]));
+            }
+            parse_param = "%2$s";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, reg_name(data[1]));
+            }
+            parse_param = "%3$s";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, reg_name(data[2]));
+            }
+            parse_param = "%4$s";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, reg_name(data[3]));
+            }
+            parse_param = "%5$x";
+            while ((start = test_string.find(parse_param)) != std::string::npos)
+            {
+                test_string.replace(start, 4, uint_to_hex(data[4]));
+            }
             std::cout << test_string << std::endl;
             //
         }
     }
-    
     return 0;
 }
