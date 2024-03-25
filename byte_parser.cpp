@@ -76,6 +76,135 @@ std::string uint_to_hex( uint32_t i )
   return stream.str();
 }
 
+std::string check_for_special_compressed_string(uint8_t func1, uint8_t func2, uint32_t* data, uint8_t arch) {
+    switch (func1)
+    {
+        case 1:
+            switch (func2)
+            {
+            case 0:
+                if ((data[0] == 1) && (data[4] == 0)) {
+                    return "nop";
+                } else {
+                    return "addi %1$s, %1$s, %5$x";
+                }
+                break;
+            case 3:
+                if (data[0] == 2) {
+                    return "addi sp, sp, %5$x";
+                } else {
+                    return "lui %1$s, %5$x";
+                }
+                break;
+            case 4:
+                if (data[2] == 3) {
+                    switch (data[3])
+                    {
+                    case 0:
+                        if (data[4] == 1) {
+                            return "subw %1$s, %1$s, %2$s";
+                        } else {
+                            return "sub %1$s, %1$s, %2$s";
+                        }
+                        break;
+                    case 1:
+                        if (data[4] == 1) {
+                            return "addw %1$s, %1$s, %2$s";
+                        } else {
+                            return "xor %1$s, %1$s, %2$s";
+                        }
+                        break;
+                    case 2:
+                        return "or %1$s, %1$s, %2$s";
+                        break;
+                    case 3:
+                        return "and %1$s, %1$s, %2$s";
+                        break;                            
+                    default:
+                        break;
+                    }
+                } else {
+                    switch (data[2])
+                    {
+                    case 0:
+                        if (data[4] == 0) {
+                            return "srli %1$s, %1$s, 64";
+                        } else {
+                            return "srli %1$s, %1$s, %5$x";
+                        }
+                        break;
+                    case 1:
+                        if (data[4] == 0) {
+                            return "srai %1$s, %1$s, 64";
+                        } else {
+                            return "srai %1$s, %1$s, %5$x";
+                        }
+                        break;
+                    case 2:
+                        return "andi %1$s, %1$s, %5$x";
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                break;                    
+            default:
+                break;
+            }
+            break;
+        case 2:
+            switch (func2)
+            {
+            case 0:
+                if (data[4] == 0) {
+                    return "slli %1$s, %1$s, 64";
+                } else {
+                    return "slli %1$s, %1$s, %5$x";
+                }
+                break;
+            case 3:
+                if (arch == 0) {
+                    return "flw %1$s, %5$x(sp)";
+                } else {
+                    return "ld %1$s, %5$x(sp)";
+                }
+                break;
+            case 4:
+                switch (data[2])
+                {
+                case 0:
+                    if (data[1] == 0) {
+                        return "jalr zero, %1$s, 0";
+                    } else {
+                        return "add %1$s, zero, %2$s";
+                    }
+                    break;
+                case 1:
+                    if ((data[0] == 0) && (data[1] == 0)) {
+                        return "ebreak";
+                    } else if (data[1] == 0) {
+                        return "jalr ra, %1$s, 0";
+                    } else {
+                        return "add %1$s, %1$s, %2$s";
+                    }
+                    break;                        
+                default:
+                    return "ERROR";
+                    break;
+                }
+                break;
+            default:
+                return "ERROR";
+                break;
+            }
+            break;                
+        default:
+            return "ERROR";
+            break;
+        }
+    return "ERROR";
+}
+
 void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t arch) {
     uint8_t func1;
     uint8_t func2;

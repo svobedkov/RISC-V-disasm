@@ -7,6 +7,7 @@ extern std::string reg_name(uint32_t num);
 void check_for_compressed_template(uint8_t *byte_array, uint32_t *data, uint8_t arch);
 void check_for_template(uint8_t *byte_array, uint32_t *data);
 std::string uint_to_hex(uint32_t i);
+std::string check_for_special_compressed_string(uint8_t func1, uint8_t func2, uint32_t* data, uint8_t arch);
 
 /* addr_len:            BAD IDEA, TO MANY CASES
 //  0 - 16-bit
