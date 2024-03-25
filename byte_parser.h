@@ -43,29 +43,6 @@ int main() {
     return 0;
 }*/
 
-class TemplateForBytes {
-public:
-    // 0 - for 16
-    // 1 - for 32
-    TemplateForBytes(uint8_t byte_len) {
-        switch (byte_len)
-        {
-        case 1: //              15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0
-            // CIW-type           func3 |     nzuimm[5:4|9:6|2|3]  | rd  | op
-            data_[0] = "???";
-            break;
-        default:
-            break;
-        }
-    }
-
-
-private:
-    std::unordered_map<uint8_t, std::string> data_;
-};
-
-
-
 //template <typename KeyType1, typename KeyType2, typename ValueType>
 class OpcodeAndFunction {
 public:

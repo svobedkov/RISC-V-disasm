@@ -1,6 +1,10 @@
 #define EI_NIDENT 16
 
 #include "byte_parser.h"
+#include "intel_hex.h"
+
+int elf_parser(char* argv[]);
+int hex_parser(char* argv[]);
 
 typedef struct {
         unsigned char   e_ident[EI_NIDENT];
@@ -85,12 +89,57 @@ typedef struct {
 } Elf64_Shdr;
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
+    if ((argc != 2) && (argv[1] != "-h")) {
         std::cerr << "Usage: " << argv[0] << " <elf_file>" << std::endl;
+        std::cerr << "Alternative usage: " << argv[0] << " -h <hex_file> <x32/x64/x128>" << std::endl;
+        return 1;
+    }
+}
+
+int hex_parser(char* argv[]) {
+    if ((argv[3] != "x32") && (argv[3] != "x64") && (argv[3] != "x128")) {
+        std::cerr << "Unknown architecture" << std::endl;
         return 1;
     }
 
-    //std::ifstream elfFile(argv[1], std::ios::binary);
+    std::string filename{argv[2]};
+    std::vector<unsigned char> parsed_data = parse_intel_hex(filename);
+    uint8_t temp_data[4];
+    uint8_t counter = 0;
+    uint8_t size_of_data = 0;
+
+    for (unsigned char byte : parsed_data) {
+        temp_data[counter] = byte;
+        if (counter == 0) {
+            switch (byte & 0b11)
+            {
+            case 3:
+                size_of_data = 4;
+                break;
+            default:
+                size_of_data = 2;
+                break;
+            }
+        }
+        counter++;
+        if (counter == size_of_data) {
+            counter = 0;
+            switch (size_of_data)
+            {
+            case 2:
+                /* code */
+                break;
+            case 4:
+                /* code */
+                break;            
+            default:
+                break;
+            }
+        }
+    }
+}
+
+int elf_parser(char* argv[]) {
     std::ifstream elfFile(argv[1], std::ios::binary);
     if (!elfFile) {
         std::cerr << "Error opening file: " << argv[1] << std::endl;
@@ -125,6 +174,44 @@ int main(int argc, char* argv[]) {
 
     std::cout << "==================================================================================================================" << std::endl;
 
+int size_of_data;
+// --------------------------------------------------------------------------------------------------
+if (elfHeader.e_ident[4] == 1) {
+    elfFile.seekg(elfHeader.e_phoff, std::ios_base::beg);
+    for(int i = 0; i < elfHeader.e_phnum; i++) {
+        Elf32_Phdr elfPHeader;
+        elfFile.read(reinterpret_cast<char*>(&elfPHeader), sizeof(Elf32_Phdr));
+        std::cout << "p_type: " << std::hex << elfPHeader.p_type << std::endl;
+        std::cout << "p_flags: " << std::hex << elfPHeader.p_flags << std::endl;
+        std::cout << "p_offset: " << std::hex << elfPHeader.p_offset << std::endl;
+        std::cout << "p_vaddr: " << std::hex << elfPHeader.p_vaddr << std::endl;
+        std::cout << "p_paddr: " << std::hex << elfPHeader.p_paddr << std::endl;
+        std::cout << "p_filesz: " << std::hex << elfPHeader.p_filesz << std::endl;
+        std::cout << "p_memsz: " << std::hex << elfPHeader.p_memsz << std::endl;
+        std::cout << "p_align: " << std::hex << elfPHeader.p_align << std::endl;
+        std::cout << "==================================================================================================================" << std::endl;
+    }
+    elfFile.seekg(elfHeader.e_shoff, std::ios_base::beg);
+    for(int i = 0; i < elfHeader.e_shnum; i++) {
+        Elf32_Shdr elfSHeader;
+        elfFile.read(reinterpret_cast<char*>(&elfSHeader), sizeof(Elf32_Shdr));
+        std::cout << "sh_name: " << std::hex << elfSHeader.sh_name << std::endl;
+        std::cout << "sh_type: " << std::hex << elfSHeader.sh_type << std::endl;
+        std::cout << "sh_flags: " << std::hex << elfSHeader.sh_flags << std::endl;
+        std::cout << "sh_addr: " << std::hex << elfSHeader.sh_addr << std::endl;
+        std::cout << "sh_offset: " << std::hex << elfSHeader.sh_offset << std::endl;
+        std::cout << "sh_size: " << std::hex << elfSHeader.sh_size << std::endl;
+        std::cout << "sh_link: " << std::hex << elfSHeader.sh_link << std::endl;
+        std::cout << "sh_info: " << std::hex << elfSHeader.sh_info << std::endl;
+        std::cout << "sh_addralign: " << std::hex << elfSHeader.sh_addralign << std::endl;
+        std::cout << "sh_entsize: " << std::hex << elfSHeader.sh_entsize << std::endl;
+
+        if (elfSHeader.sh_addr == elfHeader.e_entry) {
+            size_of_data = elfSHeader.sh_size;
+        }
+        std::cout << "==================================================================================================================" << std::endl;
+    }
+} else {
     elfFile.seekg(elfHeader.e_phoff, std::ios_base::beg);
     for(int i = 0; i < elfHeader.e_phnum; i++) {
         Elf64_Phdr elfPHeader;
@@ -139,9 +226,6 @@ int main(int argc, char* argv[]) {
         std::cout << "p_align: " << std::hex << elfPHeader.p_align << std::endl;
         std::cout << "==================================================================================================================" << std::endl;
     }
-
-    int size_of_data;
-
     elfFile.seekg(elfHeader.e_shoff, std::ios_base::beg);
     for(int i = 0; i < elfHeader.e_shnum; i++) {
         Elf64_Shdr elfSHeader;
@@ -160,13 +244,10 @@ int main(int argc, char* argv[]) {
         if (elfSHeader.sh_addr == elfHeader.e_entry) {
             size_of_data = elfSHeader.sh_size;
         }
-
-        /*if (elfSHeader.sh_type == 6) {
-            //
-        }*/
         std::cout << "==================================================================================================================" << std::endl;
     }
-
+}
+//-------------------------------------------------------------------------------------------------------------------------
     // data[0] - rd
     // data[1] - rs1
     // data[2] - rs2
